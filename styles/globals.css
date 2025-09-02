@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for Three.js panoramic viewer */
+.three-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+}
+
+/* Ensure images in cards are properly sized */
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+/* Hover effects for clickable images */
+.clickable-image {
+  transition: all 0.2s ease-in-out;
+}
+
+.clickable-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Modal overlay styles */
+.panoramic-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Enable smooth scrolling everywhere */
+html, body {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* iOS Safari */
+}
+
+
+/* Loading spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Touch-friendly controls */
+@media (max-width: 768px) {
+  .panoramic-controls {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+}
