@@ -16,12 +16,13 @@ const dummyPanoramicImages = [
   'https://pannellum.org/images/cerro-toco-0.jpg', // Repeating for demo
 ];
 
-const Card = ({ title, description, onAction, isCompleted, completedAction, imageIndex = 0 }) => {
+const Card = ({ title, description, onAction, isCompleted, completedAction, imageIndex = 0, severity, lat, lng, date, municipality, ward, type, reportedAt }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [showPanoramicViewer, setShowPanoramicViewer] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showForwardForm, setShowForwardForm] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [forwardData, setForwardData] = useState({
     currentMunicipality: '',
     currentWard: '',
@@ -42,7 +43,13 @@ const Card = ({ title, description, onAction, isCompleted, completedAction, imag
       setShowForwardForm(true);
       return;
     }
-    onAction(pendingAction, title, description);
+    if (pendingAction === 'Rejected') {
+      const augmented = `${description}\n\nRejection Reason: ${rejectReason || 'Not specified'}`;
+      onAction('Rejected', title, augmented);
+      setRejectReason('');
+    } else {
+      onAction(pendingAction, title, description);
+    }
     setShowConfirmation(false);
     setPendingAction(null);
   };
@@ -76,75 +83,16 @@ const Card = ({ title, description, onAction, isCompleted, completedAction, imag
   // Get the image for this card (cycling through dummy images)
   const cardImage = dummyPanoramicImages[imageIndex % dummyPanoramicImages.length];
 
-  // If task is completed, show completion status instead of action buttons
-  if (isCompleted) {
-    return (
-      <>
-        <div className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
-          <div className="flex items-center space-x-4">
-            {/* Clickable Image */}
-            <div 
-              className="w-16 h-16 bg-gray-300 rounded-lg flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity duration-200 overflow-x-auto overflow-y-hidden scroll-smooth"
-              style={{ 
-                WebkitOverflowScrolling: "touch",  // Smooth scrolling on iOS
-                scrollBehavior: "smooth"           // Smooth scrolling on Android + Desktop
-              }}
-              onClick={handleImageClick}
-            >
-              <img 
-                src={cardImage} 
-                alt={title}
-                className="w-full h-full object-cover rounded-lg"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
-                }}
-              />
-              <div className="w-full h-full bg-gray-300 rounded-lg flex items-center justify-center text-gray-500 text-xs">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-            </div>
-
-            
-            {/* Text Content */}
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-gray-900 truncate">{title}</h3>
-              <p className="text-gray-600 text-sm mt-1">{description}</p>
-            </div>
-            
-            {/* Completion Status */}
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <span className={`px-3 py-2 rounded-full text-sm font-medium ${
-                completedAction === 'Approved' ? 'bg-green-100 text-green-800 border border-green-200' :
-                completedAction === 'Rejected' ? 'bg-red-100 text-red-800 border border-red-200' :
-                'bg-blue-100 text-blue-800 border border-blue-200'
-              }`}>
-                {completedAction}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Panoramic Viewer */}
-        <PanoramicViewer
-          imageUrl={cardImage}
-          isOpen={showPanoramicViewer}
-          onClose={closePanoramicViewer}
-        />
-      </>
-    );
-  }
+  // Always show the interactive card on the landing page regardless of status
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
-        <div className="flex items-center space-x-4">
+      <div className="bg-white rounded-lg shadow-md p-4 border border-gray-100 cursor-pointer" onClick={openDetails}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           {/* Clickable Image */}
           <div 
-            className="w-16 h-16 bg-gray-300 rounded-lg flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity duration-200 overflow-x-auto overflow-y-hidden"
-            onClick={handleImageClick}
+            className="w-24 h-24 sm:w-16 sm:h-16 bg-gray-300 rounded-lg flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity duration-200 overflow-x-auto overflow-y-hidden"
+            onClick={(e)=>{ e.stopPropagation(); handleImageClick(); }}
           >
             <img 
               src={cardImage} 
@@ -164,44 +112,78 @@ const Card = ({ title, description, onAction, isCompleted, completedAction, imag
           
           {/* Text Content */}
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-gray-900 truncate">{title}</h3>
-            <p className="text-gray-600 text-sm mt-1 cursor-pointer" onClick={openDetails}>{description}</p>
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">{title}</h3>
+            <p className="text-gray-600 text-sm mt-1 cursor-pointer line-clamp-3 sm:line-clamp-none" onClick={openDetails}>{description}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
+              {severity && (
+                <span className={`px-2 py-1 rounded-full border ${
+                  severity === 'High' ? 'bg-red-50 text-red-700 border-red-200' :
+                  severity === 'Medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                  'bg-green-50 text-green-700 border-green-200'
+                }`}>Severity: {severity}</span>
+              )}
+              {(lat !== undefined && lng !== undefined) && (
+                <a className="px-2 py-1 rounded-full border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noreferrer">{lat?.toFixed ? lat.toFixed(4) : lat}, {lng?.toFixed ? lng.toFixed(4) : lng}</a>
+              )}
+              {date && (<span className="px-2 py-1 rounded-full border bg-gray-50 text-gray-700 border-gray-200">{date}</span>)}
+              {municipality && (<span className="px-2 py-1 rounded-full border bg-gray-50 text-gray-700 border-gray-200">{municipality}</span>)}
+              {ward && (<span className="px-2 py-1 rounded-full border bg-gray-50 text-gray-700 border-gray-200">{ward}</span>)}
+            </div>
           </div>
           
-          {/* Action Buttons - Only shown if task is not completed */}
-          <div className="flex items-center space-x-2 flex-shrink-0">
-            {/* Approve Button - Green */}
-            <button
-              onClick={() => handleActionClick('Approved')}
-              className="w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 shadow-sm hover:shadow-md"
-              aria-label="Approve"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </button>
-            
-            {/* Reject Button - Red */}
-            <button
-              onClick={() => handleActionClick('Rejected')}
-              className="w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 shadow-sm hover:shadow-md"
-              aria-label="Reject"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            
-            {/* Forward Button - Blue */}
-            <button
-              onClick={() => handleActionClick('Forward')}
-              className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 shadow-sm hover:shadow-md"
-              aria-label="Forward"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </button>
+          {/* Action Area */}
+          <div className="flex items-center gap-2 self-start sm:self-auto justify-start">
+            {completedAction ? (
+              <span className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-medium ${
+                completedAction === 'Approved' ? 'bg-green-100 text-green-800 border-green-200' :
+                completedAction === 'Rejected' ? 'bg-red-100 text-red-800 border-red-200' :
+                'bg-blue-100 text-blue-800 border-blue-200'
+              }`}>
+                {completedAction === 'Approved' && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                )}
+                {completedAction === 'Rejected' && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                )}
+                {completedAction !== 'Approved' && completedAction !== 'Rejected' && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                )}
+                <span>{completedAction === 'Forward' ? 'Forwarded' : completedAction}</span>
+              </span>
+            ) : (
+              <>
+                {/* Approve Button - Green */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleActionClick('Approved'); }}
+                  className="w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 shadow-sm hover:shadow-md"
+                  aria-label="Approve"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                {/* Reject Button - Red */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleActionClick('Rejected'); }}
+                  className="w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 shadow-sm hover:shadow-md"
+                  aria-label="Reject"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                {/* Forward Button - Blue */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleActionClick('Forward'); }}
+                  className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 shadow-sm hover:shadow-md"
+                  aria-label="Forward"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -211,9 +193,15 @@ const Card = ({ title, description, onAction, isCompleted, completedAction, imag
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Confirm Action</h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-4">
               Are you sure you want to <span className="font-medium">{pendingAction?.toLowerCase()}</span> this task?
             </p>
+            {pendingAction === 'Rejected' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection</label>
+                <textarea className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" rows="3" placeholder="Describe the reason..." value={rejectReason} onChange={(e)=>setRejectReason(e.target.value)} />
+              </div>
+            )}
             <div className="flex space-x-3">
               <button
                 onClick={cancelAction}
@@ -328,37 +316,48 @@ const Card = ({ title, description, onAction, isCompleted, completedAction, imag
 
       {/* Details Modal */}
       {showDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Details</h3>
-              <button onClick={closeDetails} className="text-gray-500 hover:text-gray-700">✕</button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <span className="block text-sm font-medium text-gray-700">Image</span>
-                <img src={cardImage} alt={title} className="w-full h-40 object-cover rounded mt-1" />
+        <div className="fixed inset-0 z-[100]">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
+          <div className="relative z-[101] flex items-center justify-center h-full p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md sm:max-w-2xl mx-4 overflow-hidden shadow-xl">
+              <div className="relative bg-gray-100">
+                <img src={cardImage} alt={title} className="w-full h-52 sm:h-60 object-cover" />
+                <button onClick={closeDetails} aria-label="Close" className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 text-gray-700 shadow flex items-center justify-center hover:bg-white">✕</button>
               </div>
-              <div>
-                <span className="block text-sm font-medium text-gray-700">Description</span>
-                <p className="text-gray-700 mt-1">{description}</p>
-              </div>
-              <div>
-                <span className="block text-sm font-medium text-gray-700">Location (coordinates)</span>
-                <p className="text-gray-700 mt-1">Lat: 12.9716, Lng: 77.5946</p>
-              </div>
-              <div>
-                <span className="block text-sm font-medium text-gray-700">Default (user's) details</span>
-                <div className="text-gray-700 mt-1 space-y-1">
-                  <p>Name: John Doe</p>
-                  <p>Email: john.doe@example.com</p>
-                  <p>Phone: +91 98765 43210</p>
-                  <p>Address: 221B Baker Street, London</p>
+              <div className="p-5 sm:p-6 bg-white">
+                <h3 className="text-base font-semibold text-gray-900 mb-3 truncate">{title}</h3>
+                <div className="mb-5">
+                  <div className="text-xs font-medium text-gray-600 mb-1">Description</div>
+                  <p className="text-gray-700 text-sm leading-relaxed">{description}</p>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Category</span>
+                    <span className="font-medium text-gray-900">{type || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Reported</span>
+                    <span className="font-medium text-gray-900">{reportedAt ? (()=>{ const diff = Date.now()-new Date(reportedAt).getTime(); const days = Math.floor(diff/86400000); return days>0 ? `${days} day${days>1?'s':''} ago` : 'Today'; })() : '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Location</span>
+                    {(lat !== undefined && lng !== undefined) ? (
+                      <a className="font-medium text-blue-700 hover:underline" href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noreferrer">{lat.toFixed ? lat.toFixed(2) : lat}, {lng.toFixed ? lng.toFixed(2) : lng}</a>
+                    ) : <span className="text-gray-500">—</span>}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Severity</span>
+                    <span className={`px-2 py-0.5 rounded border text-xs ${
+                      severity === 'High' ? 'bg-red-50 text-red-700 border-red-200' :
+                      severity === 'Medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      'bg-green-50 text-green-700 border-green-200'
+                    }`}>{severity || '—'}</span>
+                  </div>
+                </div>
+                <div className="flex justify-end mt-6">
+                  <button onClick={closeDetails} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Close</button>
                 </div>
               </div>
-            </div>
-            <div className="flex justify-end mt-6">
-              <button onClick={closeDetails} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">Close</button>
             </div>
           </div>
         </div>
