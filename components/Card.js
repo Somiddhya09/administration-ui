@@ -16,7 +16,7 @@ const dummyPanoramicImages = [
   'https://pannellum.org/images/cerro-toco-0.jpg', // Repeating for demo
 ];
 
-const Card = ({ title, description, onAction, isCompleted, completedAction, imageIndex = 0, severity, lat, lng, date, municipality, ward, type, reportedAt }) => {
+const Card = ({ id, title, description, onAction, isCompleted, completedAction, imageIndex = 0, severity, lat, lng, date, municipality, ward, type, reportedAt }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [showPanoramicViewer, setShowPanoramicViewer] = useState(false);
@@ -35,7 +35,7 @@ const Card = ({ title, description, onAction, isCompleted, completedAction, imag
     setPendingAction(action);
     setShowConfirmation(true);
   };
-
+  
   const confirmAction = () => {
     // If forwarding, open questionnaire instead of immediate action
     if (pendingAction === 'Forward') {
@@ -45,11 +45,14 @@ const Card = ({ title, description, onAction, isCompleted, completedAction, imag
     }
     if (pendingAction === 'Rejected') {
       const augmented = `${description}\n\nRejection Reason: ${rejectReason || 'Not specified'}`;
-      onAction('Rejected', title, augmented);
+      onAction('Rejected', id, augmented);
       setRejectReason('');
-    } else {
-      onAction(pendingAction, title, description);
+    }else if(pendingAction === 'Approved'){
+      onAction('Approved', id, description);
+    }else if (pendingAction === 'Forward') {
+      onAction('Forwarded', id, description); // normalized
     }
+    
     setShowConfirmation(false);
     setPendingAction(null);
   };
@@ -74,10 +77,17 @@ const Card = ({ title, description, onAction, isCompleted, completedAction, imag
     e.preventDefault();
     // Pass along forward info as part of description for now
     const augmentedDescription = `${description}\n\nForwarding From: ${forwardData.currentMunicipality || 'City North'} - ${forwardData.currentWard || 'Ward 2'}\nTo: ${forwardData.targetMunicipality || 'City West'} - ${forwardData.targetWard || 'Ward 11'}\nReason: ${forwardData.reason || 'Re-assigning to responsible jurisdiction'}`;
-    onAction('Forward', title, augmentedDescription);
+    
+    onAction('Forwarded', id, augmentedDescription);
+    
     setShowForwardForm(false);
     setPendingAction(null);
-    setForwardData({ currentMunicipality: '', currentWard: '', targetMunicipality: '', targetWard: '', reason: '' });
+    setForwardData({ 
+      currentMunicipality: '', 
+      currentWard: '', 
+      targetMunicipality: '', 
+      targetWard: '', 
+      reason: '' });
   };
 
   // Get the image for this card (cycling through dummy images)

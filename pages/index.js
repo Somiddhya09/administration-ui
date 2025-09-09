@@ -4,15 +4,6 @@ import MessageBar from '../components/MessageBar';
 import Card from '../components/Card';
 
 export default function Home() {
-  const [reviews, setReviews] = useState([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [completedTasks, setCompletedTasks] = useState({});
-  // Filters toolbar state
-  const [sortOrder, setSortOrder] = useState('newest');
-  const [filterMunicipality, setFilterMunicipality] = useState('');
-  const [filterWard, setFilterWard] = useState('');
-  const [filterDate, setFilterDate] = useState('');
-  
   // Sample data array for cards
   const sampleData = [
     { 
@@ -148,6 +139,23 @@ export default function Home() {
   ];
 
 
+  const [reviews, setReviews] = useState([]);
+  const [stats, setStats] = useState({
+    pending: sampleData.length,
+    approved: 0,
+    rejected: 0,
+    forwarded: 0,
+  });
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [completedTasks, setCompletedTasks] = useState({});
+  // Filters toolbar state
+  const [sortOrder, setSortOrder] = useState('newest');
+  const [filterMunicipality, setFilterMunicipality] = useState('');
+  const [filterWard, setFilterWard] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  
+
   const filteredAndSorted = useMemo(() => {
     let arr = [...sampleData];
     if (filterMunicipality) arr = arr.filter(i => i.municipality === filterMunicipality);
@@ -157,50 +165,57 @@ export default function Home() {
     return arr;
   }, [sampleData, filterMunicipality, filterWard, filterDate, sortOrder]);
 
-  const handleAction = (action, title, description) => {
+  const groupedReports = useMemo(() => {
+    const groups = { Pending: [], Approved: [], Rejected: [], Forwarded: [] };
+    filteredAndSorted.forEach((item) => {
+      const status = completedTasks[item.id]?.action || 'Pending';
+      groups[status].push({
+        id: item.id,
+        title: item.title,
+        timestamp: item.reportedAt,
+        action: status,
+      });
+    });
+    return groups;
+  }, [filteredAndSorted, completedTasks]);
+
+  const handleAction = (action, id, description) => {
+    // Create a new review (optional, if you’re logging history somewhere)
     const newReview = {
       id: Date.now(),
-      title,
+      title:  sampleData.find(i => i.id === id)?.title || 'Unknown',
       description,
       action,
       timestamp: new Date().toLocaleString()
     };
-    
-    // Add to reviews
-    setReviews(prevReviews => [newReview, ...prevReviews]);
-    
-    // Mark task as completed
-    const taskKey = `${title}-${description}`;
+
+    // ✅ Update the cards state so UI shows Approved / Rejected / Forward
     setCompletedTasks(prev => ({
       ...prev,
-      [taskKey]: {
-        action: action,
-        completed: true
+      [id]: {
+        completed: true,
+        action,
+        description
       }
     }));
+
+    // If you also want to keep a list of reviews:
+    setReviews(prev => [...prev, newReview]);
+
+    setStats(prev => {
+      const updated = { ...prev, pending: Math.max(0, prev.pending - 1) };
+      if (action === 'Approved') updated.approved += 1;
+      if (action === 'Rejected') updated.rejected += 1;
+      if (action === 'Forwarded') updated.forwarded += 1;
+      return updated;
+    });
   };
+
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
-
-  // Derive dynamic stats and grouped reports for navbar
-  const { stats, groupedReports } = useMemo(() => {
-    const groups = { Pending: [], Approved: [], Rejected: [], Forwarded: [] };
-    filteredAndSorted.forEach((item) => {
-      const taskKey = `${item.title}-${item.description}`;
-      const action = completedTasks[taskKey]?.action;
-      const status = action === 'Approved' ? 'Approved' : action === 'Rejected' ? 'Rejected' : action === 'Forward' ? 'Forwarded' : 'Pending';
-      groups[status].push({ id: item.id, title: item.title, timestamp: item.reportedAt, action: status });
-    });
-    const s = {
-      pending: groups.Pending.length,
-      approved: groups.Approved.length,
-      rejected: groups.Rejected.length,
-      forwarded: groups.Forwarded.length,
-    };
-    return { stats: s, groupedReports: groups };
-  }, [filteredAndSorted, completedTasks]);
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -251,9 +266,10 @@ export default function Home() {
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending Reports</h2>
           <div className="space-y-4">
-            {filteredAndSorted.filter(item => !completedTasks[`${item.title}-${item.description}`]?.completed).map((item) => (
+            {filteredAndSorted.filter(item => !completedTasks[item.id]?.completed).map((item) => (
               <Card
                 key={item.id}
+                id={item.id}
                 title={item.title}
                 description={item.description}
                 onAction={handleAction}
@@ -280,9 +296,10 @@ export default function Home() {
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Actions Taken</h2>
           <div className="space-y-4">
-            {filteredAndSorted.filter(item => completedTasks[`${item.title}-${item.description}`]?.completed).map((item) => (
+            {filteredAndSorted.filter(item => completedTasks[item.id]?.completed).map((item) => (
               <Card
                 key={item.id}
+                id={item.id}
                 title={item.title}
                 description={item.description}
                 onAction={handleAction}
@@ -300,7 +317,7 @@ export default function Home() {
               />
             ))}
           </div>
-          {filteredAndSorted.filter(item => completedTasks[`${item.title}-${item.description}`]?.completed).length === 0 && (
+          {filteredAndSorted.filter(item => completedTasks[item.id]?.completed).length === 0 && (
             <p className="text-sm text-gray-500">No actions taken yet.</p>
           )}
         </section>
