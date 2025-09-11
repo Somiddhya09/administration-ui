@@ -1,30 +1,28 @@
-// pages/index.js
+// pages/forwarded.js
 import Navbar from '../components/Navbar';
 import Card from '../components/Card';
-import { useReports } from '../context/ReportsContext'; // Import the custom hook
+import { useReports } from '../context/ReportsContext';
 
-export default function HomePage() {
-  // Get all data and functions from the context
+export default function ForwardedPage() {
   const { reports, stats, handleAction } = useReports();
-  
-  // Filter for only pending reports to display on this page
-  const pendingReports = reports.filter(report => report.status === 'Pending');
+  const forwardedReports = reports.filter(report => report.status === 'Forwarded');
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar stats={stats} />
       <main className="max-w-4xl mx-auto px-4 py-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending Reports</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Forwarded Reports</h2>
         <div className="space-y-4">
-          {pendingReports.length > 0 ? (
-            pendingReports.map((item, index) => (
+          {forwardedReports.length > 0 ? (
+            forwardedReports.map((item, index) => (
               <Card
                 key={item.id}
                 id={item.id}
                 title={item.title}
                 description={item.description}
                 onAction={handleAction}
-                isCompleted={false}
+                isCompleted={true}
+                completedAction="Forwarded"
                 imageIndex={index}
                 severity={item.severity}
                 lat={item.lat}
@@ -37,7 +35,7 @@ export default function HomePage() {
               />
             ))
           ) : (
-            <p className="text-sm text-gray-500">No pending reports.</p>
+             <p className="text-sm text-gray-500">No forwarded reports found.</p>
           )}
         </div>
       </main>

@@ -1,8 +1,16 @@
 import { useState } from 'react';
+import Link from 'next/link';
 
-const Navbar = ({ stats = { pending: 0, approved: 0, rejected: 0, forwarded: 0 }, groupedReports = { Pending: [], Approved: [], Rejected: [], Forwarded: [] } }) => {
+const Navbar = ({ stats = { pending: 0, approved: 0, rejected: 0, forwarded: 0 } }) => {
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState({ Pending: false, Approved: false, Rejected: false, Forwarded: false });
+
+  // --- FIX: Created a mapping for the new page links ---
+  const pageLinks = {
+    Pending: '/',
+    Approved: '/approved',
+    Rejected: '/rejected',
+    Forwarded: '/forwarded'
+  };
 
   return (
     <nav className="w-full bg-white shadow-sm border-b border-gray-100">
@@ -43,14 +51,13 @@ const Navbar = ({ stats = { pending: 0, approved: 0, rejected: 0, forwarded: 0 }
             
             {/* Profile Section */}
             <div className="mb-6">
-              <a href="/profile" className="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-gray-100">
-                {/* You can replace this with an actual user image */}
+              <Link href="/profile" className="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-gray-100">
                 <img src="https://i.pravatar.cc/40" alt="User Profile" className="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <p className="font-semibold text-gray-800">John Doe</p>
                   <p className="text-xs text-gray-500">View Profile</p>
                 </div>
-              </a>
+              </Link>
             </div>
             {/* Statistics */}
             <div className="space-y-3 mb-6">
@@ -77,28 +84,18 @@ const Navbar = ({ stats = { pending: 0, approved: 0, rejected: 0, forwarded: 0 }
               </div>
             </div>
 
-            {/* Navigation with expandable lists */}
+            {/* --- FIX: Navigation with direct page links --- */}
             <div className="space-y-2 mb-8">
               <h3 className="text-sm font-medium text-gray-700">Navigation</h3>
-              {(['Pending','Approved','Rejected','Forwarded']).map((section) => (
-                <div key={section} className="border border-gray-100 rounded-md">
-                  <button onClick={()=>setExpanded(prev=>({ ...prev, [section]: !prev[section] }))} className={`w-full flex items-center justify-between px-3 py-2 text-left ${expanded[section] ? 'bg-gray-50' : 'bg-white'}`}>
-                    <span className="text-gray-800 text-sm font-medium">{section} Reports</span>
-                    <span className={`transition-transform ${expanded[section] ? 'rotate-180' : ''}`}>▾</span>
-                  </button>
-                  {expanded[section] && (
-                    <div className="px-3 pb-2">
-                      <ul className="space-y-1 max-h-56 overflow-y-auto">
-                        {(groupedReports[section] || []).map((r)=> (
-                          <li key={r.id} className="text-sm text-gray-700 bg-white rounded px-2 py-1 border border-gray-100">{r.title}</li>
-                        ))}
-                        {(groupedReports[section] || []).length === 0 && (
-                          <li className="text-xs text-gray-500 px-2 py-1">No reports</li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
-                </div>
+              {Object.entries(pageLinks).map(([section, href]) => (
+                <Link
+                  key={section}
+                  href={href}
+                  onClick={() => setOpen(false)} // Closes menu on link click
+                  className="block px-3 py-2 rounded-md hover:bg-gray-50 border border-transparent hover:border-gray-100 text-gray-800 text-sm font-medium transition-colors"
+                >
+                  {section} Reports
+                </Link>
               ))}
             </div>
 

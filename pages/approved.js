@@ -1,30 +1,28 @@
-// pages/index.js
+// pages/approved.js
 import Navbar from '../components/Navbar';
 import Card from '../components/Card';
-import { useReports } from '../context/ReportsContext'; // Import the custom hook
+import { useReports } from '../context/ReportsContext';
 
-export default function HomePage() {
-  // Get all data and functions from the context
+export default function ApprovedPage() {
   const { reports, stats, handleAction } = useReports();
-  
-  // Filter for only pending reports to display on this page
-  const pendingReports = reports.filter(report => report.status === 'Pending');
+  const approvedReports = reports.filter(report => report.status === 'Approved');
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar stats={stats} />
       <main className="max-w-4xl mx-auto px-4 py-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending Reports</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Approved Reports</h2>
         <div className="space-y-4">
-          {pendingReports.length > 0 ? (
-            pendingReports.map((item, index) => (
+          {approvedReports.length > 0 ? (
+            approvedReports.map((item, index) => (
               <Card
                 key={item.id}
                 id={item.id}
                 title={item.title}
                 description={item.description}
                 onAction={handleAction}
-                isCompleted={false}
+                isCompleted={true}
+                completedAction="Approved"
                 imageIndex={index}
                 severity={item.severity}
                 lat={item.lat}
@@ -37,7 +35,7 @@ export default function HomePage() {
               />
             ))
           ) : (
-            <p className="text-sm text-gray-500">No pending reports.</p>
+             <p className="text-sm text-gray-500">No approved reports found.</p>
           )}
         </div>
       </main>
