@@ -9,12 +9,42 @@ const MUNICIPALITIES = [
   { name: 'City West', wards: ['Ward 10', 'Ward 11', 'Ward 12'] }
 ];
 
-// Dummy panoramic images - you can replace these with your actual images
-const dummyPanoramicImages = [
-  'https://pannellum.org/images/cerro-toco-0.jpg', // Example panoramic image
-  'https://pannellum.org/images/jfk.jpg', // Another example
-  'https://pannellum.org/images/cerro-toco-0.jpg', // Repeating for demo
+
+const dummyDatas = [
+  {
+    type: "image",
+    url: "https://pannellum.org/images/cerro-toco-0.jpg"
+  },
+  {
+    type: "image",
+    url: "https://pannellum.org/images/jfk.jpg"
+  },
+  {
+    type: "video",
+    url: "https://www.w3schools.com/html/mov_bbb.mp4" // Dummy video
+  },
+  {
+    type: "image",
+    url: "https://pannellum.org/images/bma-0.jpg"
+  },
+  {
+    type: "video",
+    url: "https://www.w3schools.com/html/movie.mp4" // Another dummy video
+  },
+  {
+    type: "image",
+    url: "https://pannellum.org/images/cerro-toco-0.jpg"
+  },
+  {
+    type: "video",
+    url: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" // Short CC0 video
+  },
+  {
+    type: "image",
+    url: "https://pannellum.org/images/jfk.jpg"
+  }
 ];
+
 
 const Card = ({ id, title, description, onAction, isCompleted, completedAction, imageIndex = 0, severity, lat, lng, date, municipality, ward, type, reportedAt }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -22,6 +52,8 @@ const Card = ({ id, title, description, onAction, isCompleted, completedAction, 
   const [showPanoramicViewer, setShowPanoramicViewer] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showForwardForm, setShowForwardForm] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);  
+  const [modalVideoUrl, setModalVideoUrl] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [forwardData, setForwardData] = useState({
     currentMunicipality: '',
@@ -90,8 +122,37 @@ const Card = ({ id, title, description, onAction, isCompleted, completedAction, 
       reason: '' });
   };
 
+  const callGeminiAPI = async (prompt) => {
+    const apiKey = ""; 
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return (
+        result.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "Could not generate a response."
+      );
+    } catch (error) {
+      console.error("Gemini API call failed:", error);
+      return "Failed to get a response from AI.";
+    }
+  };
+
+
   // Get the image for this card (cycling through dummy images)
-  const cardImage = dummyPanoramicImages[imageIndex % dummyPanoramicImages.length];
+  const cardImage = dummyDatas[imageIndex % dummyDatas.length];
 
   // Always show the interactive card on the landing page regardless of status
 
@@ -104,15 +165,27 @@ const Card = ({ id, title, description, onAction, isCompleted, completedAction, 
             className="w-24 h-24 sm:w-16 sm:h-16 bg-gray-300 rounded-lg flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity duration-200 overflow-x-auto overflow-y-hidden"
             onClick={(e)=>{ e.stopPropagation(); handleImageClick(); }}
           >
-            <img 
-              src={cardImage} 
-              alt={title}
-              className="w-full h-full object-cover rounded-lg"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
-            />
+            {cardImage.type === "image" ? (
+              <img
+                src={cardImage.url}
+                alt={title}
+                className="w-full h-full object-cover rounded-lg"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : (
+              <video
+                src={cardImage.url}
+                className="w-full h-full object-cover rounded-lg cursor-pointer"
+                muted
+                autoPlay
+                loop
+                onClick={(e) =>{e.stopPropagation(); setShowVideoModal(true)} }
+              />
+            )}
+
             <div className="w-full h-full bg-gray-300 rounded-lg flex items-center justify-center text-gray-500 text-xs ">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -210,6 +283,21 @@ const Card = ({ id, title, description, onAction, isCompleted, completedAction, 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection</label>
                 <textarea className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" rows="3" placeholder="Describe the reason..." value={rejectReason} onChange={(e)=>setRejectReason(e.target.value)} />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setRejectData({ ...rejectData, reason: "Generating with AI..." });
+
+                    const prompt = `Based on this civic issue report: "${report.description}", suggest a concise, professional reason for rejecting it.`;
+                    const aiText = await callGeminiAPI(prompt);
+
+                    setRejectData({ ...rejectData, reason: aiText });
+                  }}
+                  className="mt-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                  Generate with AI
+                </button>
+
               </div>
             )}
             <div className="flex space-x-3">
@@ -314,6 +402,21 @@ const Card = ({ id, title, description, onAction, isCompleted, completedAction, 
                   value={forwardData.reason}
                   onChange={(e) => setForwardData({ ...forwardData, reason: e.target.value })}
                 />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    // show loading text while AI generates
+                    setForwardData({ ...forwardData, reason: "Generating with AI..." });
+
+                    const prompt = `Based on this civic issue report: "${report.description}", suggest a brief and professional reason for forwarding this task to another municipality/ward.`;
+                    const aiText = await callGeminiAPI(prompt);
+
+                    setForwardData({ ...forwardData, reason: aiText });
+                  }}
+                  className="mt-2 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                >
+                  Generate with AI
+                </button>
               </div>
               <div className="flex space-x-3 pt-2">
                 <button type="button" onClick={() => setShowForwardForm(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
@@ -331,7 +434,11 @@ const Card = ({ id, title, description, onAction, isCompleted, completedAction, 
           <div className="relative z-[101] flex items-center justify-center h-full p-4">
             <div className="bg-white rounded-2xl w-full max-w-md sm:max-w-2xl mx-4 overflow-hidden shadow-xl">
               <div className="relative bg-gray-100">
-                <img src={cardImage} alt={title} className="w-full h-52 sm:h-60 object-cover" />
+                {cardImage.type === "image" ? (
+                  <img src={cardImage.url} alt={title} className="w-full h-52 sm:h-60 object-cover cursor-pointer" onClick={() => setShowPanoramicViewer(true)} />
+                ) : (
+                  <video src={cardImage.url} className="w-full h-52 sm:h-60 object-cover" controls />
+                )}
                 <button onClick={closeDetails} aria-label="Close" className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 text-gray-700 shadow flex items-center justify-center hover:bg-white">✕</button>
               </div>
               <div className="p-5 sm:p-6 bg-white">
@@ -375,11 +482,45 @@ const Card = ({ id, title, description, onAction, isCompleted, completedAction, 
 
       {/* Panoramic Viewer */}
       <PanoramicViewer
-        imageUrl={cardImage}
-        isOpen={showPanoramicViewer}
+        imageUrl={cardImage.type === "image" ? cardImage.url : null}
+        isOpen={showPanoramicViewer && cardImage.type === "image"}
         onClose={closePanoramicViewer}
       />
+      {showVideoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+          <div className="relative w-full max-w-4xl">
+            <video
+              src={cardImage.url}
+              className="w-full h-auto rounded-lg"
+              controls
+              autoPlay
+            />
+            <button
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setModalVideoUrl(cardImage.url); 
+              }}
+              className="absolute top-2 right-2 text-white text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      {modalVideoUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+          <div className="relative w-full max-w-4xl">
+            <video src={modalVideoUrl} className="w-full h-auto rounded-lg" controls autoPlay />
+            <button onClick={() => setModalVideoUrl(null)} className="absolute top-2 right-2 text-white text-2xl">✕</button>
+          </div>
+        </div>
+      )}
+
+      
     </>
+
+    
+
   );
 };
 

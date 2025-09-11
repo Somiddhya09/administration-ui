@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 }
 
 // Panoramic scene component
-const PanoramicScene = ({ imageUrl, onClose, rotateSpeed = 1.5 }) => {
+const PanoramicScene = ({ imageUrl, onClose, rotateSpeed = 1 }) => {
   const meshRef = useRef();
   const { camera, gl } = useThree();
   const [isDragging, setIsDragging] = useState(false);

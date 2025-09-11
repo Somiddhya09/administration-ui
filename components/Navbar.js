@@ -40,7 +40,18 @@ const Navbar = ({ stats = { pending: 0, approved: 0, rejected: 0, forwarded: 0 }
               <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
               <button aria-label="Close menu" onClick={() => setOpen(false)} className="text-gray-600 hover:text-gray-800">✕</button>
             </div>
-
+            
+            {/* Profile Section */}
+            <div className="mb-6">
+              <a href="/profile" className="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-gray-100">
+                {/* You can replace this with an actual user image */}
+                <img src="https://i.pravatar.cc/40" alt="User Profile" className="w-10 h-10 rounded-full object-cover" />
+                <div>
+                  <p className="font-semibold text-gray-800">John Doe</p>
+                  <p className="text-xs text-gray-500">View Profile</p>
+                </div>
+              </a>
+            </div>
             {/* Statistics */}
             <div className="space-y-3 mb-6">
               <h3 className="text-sm font-medium text-gray-700">Statistics</h3>
@@ -91,8 +102,6 @@ const Navbar = ({ stats = { pending: 0, approved: 0, rejected: 0, forwarded: 0 }
               ))}
             </div>
 
-            {/* Task Reviews removed as requested */}
-
             {/* Help & Support */}
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-gray-700">Help & Support</h3>
@@ -102,6 +111,16 @@ const Navbar = ({ stats = { pending: 0, approved: 0, rejected: 0, forwarded: 0 }
                 <li><a href="#" className="block px-3 py-2 rounded-md hover:bg-gray-50">Feedback</a></li>
               </ul>
             </div>
+            {/*Logout*/}
+            <div className="p-5 mt-auto border-t border-gray-200">
+              <button className="w-full flex items-center justify-center gap-2 px-3 py-2 text-red-600 rounded-md hover:bg-red-50 font-semibold transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+                </svg>
+                <span>Logout</span>
+              </button>
+            </div>
+            
           </aside>
         </div>
       )}
